@@ -10,7 +10,7 @@ import TodoStats from '@/components/TodoStats';
 export default function TodoApp() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
-  const [sort, setSort] = useState<SortType>('createdAt');
+  const [sort, setSort] = useState<SortType>('created_at');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,17 +33,17 @@ export default function TodoApp() {
     fetchTodos();
   }, [fetchTodos]);
 
-  const addTodo = async (text: string, category: string, priority: string) => {
+  const addTodo = async (title: string) => {
     try {
       setError(null);
       const res = await fetch('/api/todos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, category, priority }),
+        body: JSON.stringify({ title }),
       });
       if (!res.ok) throw new Error('Failed to add');
       const newTodo = await res.json();
-      setTodos((prev) => [...prev, newTodo]);
+      setTodos((prev) => [newTodo, ...prev]);
     } catch {
       setError('Failed to add todo. Please try again.');
     }
@@ -78,13 +78,13 @@ export default function TodoApp() {
     }
   };
 
-  const editTodo = async (id: string, text: string) => {
+  const editTodo = async (id: string, title: string) => {
     try {
       setError(null);
       const res = await fetch(`/api/todos/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ title }),
       });
       if (!res.ok) throw new Error('Failed to edit');
       const updated = await res.json();
@@ -105,16 +105,10 @@ export default function TodoApp() {
       if (filter === 'completed') return t.completed;
       return true;
     })
-    .filter((t) => t.text.toLowerCase().includes(search.toLowerCase()))
+    .filter((t) => t.title.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
-      if (sort === 'priority') {
-        const order = { high: 0, medium: 1, low: 2 };
-        return order[a.priority] - order[b.priority];
-      }
-      if (sort === 'alphabetical') {
-        return a.text.localeCompare(b.text);
-      }
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (sort === 'alphabetical') return a.title.localeCompare(b.title);
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
   return (
@@ -136,7 +130,7 @@ export default function TodoApp() {
             <input
               type="text"
               value={search}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search todos..."
               className="w-full px-4 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
             />
@@ -164,19 +158,24 @@ export default function TodoApp() {
             <div className="text-center py-16">
               <div className="text-5xl mb-4">✅</div>
               <p className="text-slate-400 text-lg font-medium">
-                {search ? 'No todos match your search.' : filter === 'completed' ? 'No completed todos yet.' : filter === 'active' ? 'No active todos!' : 'Add your first todo above!'}
+                {search
+                  ? 'No todos match your search.'
+                  : filter === 'completed'
+                  ? 'No completed todos yet.'
+                  : filter === 'active'
+                  ? 'No active todos!'
+                  : 'Add your first todo above!'}
               </p>
             </div>
           ) : (
             filteredAndSorted.map((todo) => (
-              <div key={todo.id} className="animate-slide-in">
-                <TodoItem
-                  todo={todo}
-                  onToggle={toggleTodo}
-                  onDelete={deleteTodo}
-                  onEdit={editTodo}
-                />
-              </div>
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                onToggle={toggleTodo}
+                onDelete={deleteTodo}
+                onEdit={editTodo}
+              />
             ))
           )}
         </div>

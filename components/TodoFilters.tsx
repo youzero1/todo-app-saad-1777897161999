@@ -5,59 +5,39 @@ import { FilterType, SortType } from '@/types';
 interface TodoFiltersProps {
   filter: FilterType;
   sort: SortType;
-  onFilterChange: (filter: FilterType) => void;
-  onSortChange: (sort: SortType) => void;
+  onFilterChange: (f: FilterType) => void;
+  onSortChange: (s: SortType) => void;
 }
 
-const FILTERS: { label: string; value: FilterType }[] = [
-  { label: 'All', value: 'all' },
-  { label: 'Active', value: 'active' },
-  { label: 'Completed', value: 'completed' },
-];
-
-const SORTS: { label: string; value: SortType }[] = [
-  { label: 'Newest', value: 'createdAt' },
-  { label: 'Priority', value: 'priority' },
-  { label: 'A–Z', value: 'alphabetical' },
-];
-
 export default function TodoFilters({ filter, sort, onFilterChange, onSortChange }: TodoFiltersProps) {
+  const filters: FilterType[] = ['all', 'active', 'completed'];
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex rounded-lg overflow-hidden border border-slate-200 bg-white">
-        {FILTERS.map((f) => (
+      <div className="flex gap-1">
+        {filters.map((f) => (
           <button
-            key={f.value}
-            onClick={() => onFilterChange(f.value)}
-            className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-              filter === f.value
+            key={f}
+            onClick={() => onFilterChange(f)}
+            className={`px-3 py-1 rounded-full text-xs font-medium capitalize transition-colors ${
+              filter === f
                 ? 'bg-indigo-600 text-white'
-                : 'text-slate-600 hover:bg-slate-100'
+                : 'bg-white text-slate-500 border border-slate-200 hover:border-indigo-300'
             }`}
           >
-            {f.label}
+            {f}
           </button>
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-slate-500 font-medium">Sort:</span>
-        <div className="flex rounded-lg overflow-hidden border border-slate-200 bg-white">
-          {SORTS.map((s) => (
-            <button
-              key={s.value}
-              onClick={() => onSortChange(s.value)}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                sort === s.value
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <select
+        value={sort}
+        onChange={(e) => onSortChange(e.target.value as SortType)}
+        className="text-xs border border-slate-200 rounded-lg px-2 py-1 text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+      >
+        <option value="created_at">Newest first</option>
+        <option value="alphabetical">Alphabetical</option>
+      </select>
     </div>
   );
 }

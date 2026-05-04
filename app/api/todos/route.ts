@@ -1,39 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readTodos, writeTodos } from '@/lib/todoStore';
+import { supabase } from '@/lib/supabase';
 
 export async function GET() {
   try {
-    const todos = readTodos();
-    return NextResponse.json(todos);
-  } catch {
-    return NextResponse.json({ error: 'Failed to fetch todos' }, { status: 500 });
+    const { data, error } = await supabase
+      .from('todos')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to fetch todos';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { text, category } = body;
+    const { title } = body;
 
-    if (!text || typeof text !== 'string' || text.trim() === '') {
-      return NextResponse.json({ error: 'Text is required' }, { status: 400 });
+    if (!title || typeof title !== 'string' || title.trim() === '') {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
     }
 
-    const todos = readTodos();
-    const newTodo = {
-      id: Date.now().toString(),
-      text: text.trim(),
-      completed: false,
-      category: category || 'general',
-      createdAt: new Date().toISOString(),
-      priority: body.priority || 'medium',
-    };
+    const { data, error } = await supabase
+      .from('todos')
+      .insert({ title: title.trim(), completed: false })
+      .select()
+      .single();
 
-    todos.push(newTodo);
-    writeTodos(todos);
-
-    return NextResponse.json(newTodo, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: 'Failed to create todo' }, { status: 500 });
+    if (error) throw error;
+    return NextResponse.json(data, { status: 201 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to create todo';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

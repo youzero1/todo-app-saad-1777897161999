@@ -1,39 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readTodos, writeTodos } from '@/lib/todoStore';
+import { supabase } from '@/lib/supabase';
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const { id } = params;
     const body = await request.json();
-    const todos = readTodos();
-    const index = todos.findIndex((t) => t.id === id);
 
-    if (index === -1) {
-      return NextResponse.json({ error: 'Todo not found' }, { status: 404 });
+    const updates: { completed?: boolean; title?: string } = {};
+    if (typeof body.completed === 'boolean') updates.completed = body.completed;
+    if (typeof body.title === 'string' && body.title.trim() !== '') {
+      updates.title = body.title.trim();
     }
 
-    todos[index] = { ...todos[index], ...body };
-    writeTodos(todos);
+    const { data, error } = await supabase
+      .from('todos')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
 
-    return NextResponse.json(todos[index]);
-  } catch {
-    return NextResponse.json({ error: 'Failed to update todo' }, { status: 500 });
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to update todo';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const { id } = params;
-    const todos = readTodos();
-    const filtered = todos.filter((t) => t.id !== id);
 
-    if (filtered.length === todos.length) {
-      return NextResponse.json({ error: 'Todo not found' }, { status: 404 });
-    }
+    const { error } = await supabase.from('todos').delete().eq('id', id);
 
-    writeTodos(filtered);
+    if (error) throw error;
     return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: 'Failed to delete todo' }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to delete todo';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
